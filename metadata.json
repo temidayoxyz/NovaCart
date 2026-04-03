@@ -1,0 +1,5 @@
+{
+  "name": "NovaCart",
+  "description": "A modern, high-end e-commerce storefront with SaaS-style interface, simulated backend via local storage, and premium UX.",
+  "requestFramePermissions": []
+}
