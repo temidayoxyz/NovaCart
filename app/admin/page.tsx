@@ -5,20 +5,37 @@ import { useAuthStore } from '@/lib/store/useAuthStore';
 import { useProductStore } from '@/lib/store/useProductStore';
 import { useOrderStore } from '@/lib/store/useOrderStore';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Plus, Edit, Trash2 } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Plus, Edit, Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { Product } from '@/lib/sample-data';
 
 export default function AdminPage() {
   const { user, isAuthenticated } = useAuthStore();
-  const { products, deleteProduct } = useProductStore();
+  const { products, addProduct, updateProduct, deleteProduct } = useProductStore();
   const { orders, updateOrderStatus } = useOrderStore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders'>('dashboard');
   const [mounted, setMounted] = useState(false);
 
+  // Product Modal State
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productFormData, setProductFormData] = useState<Partial<Product>>({
+    title: '',
+    description: '',
+    price: 0,
+    category: 'Clothing',
+    inventory: 0,
+    images: ['https://picsum.photos/seed/new-prod/800/1000'],
+    featured: false,
+    rating: 4.5,
+    reviewCount: 0,
+  });
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     if (!isAuthenticated || user?.role !== 'admin') {
       router.push('/');
@@ -26,6 +43,57 @@ export default function AdminPage() {
   }, [isAuthenticated, user, router]);
 
   if (!mounted || !user || user.role !== 'admin') return null;
+
+  const handleOpenAddModal = () => {
+    setEditingProduct(null);
+    setProductFormData({
+      title: '',
+      description: '',
+      price: 0,
+      category: 'Clothing',
+      inventory: 0,
+      images: ['https://picsum.photos/seed/new-prod/800/1000'],
+      featured: false,
+      rating: 4.5,
+      reviewCount: 0,
+    });
+    setIsProductModalOpen(true);
+  };
+
+  const handleOpenEditModal = (product: Product) => {
+    setEditingProduct(product);
+    setProductFormData({ ...product });
+    setIsProductModalOpen(true);
+  };
+
+  const handleProductSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingProduct) {
+      updateProduct(editingProduct.id, productFormData);
+      toast.success('Product updated successfully');
+    } else {
+      const newProduct: Product = {
+        ...productFormData as Product,
+        id: `prod_${Math.random().toString(36).substr(2, 9)}`,
+      };
+      addProduct(newProduct);
+      toast.success('Product added successfully');
+    }
+    
+    setIsProductModalOpen(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const val = type === 'number' ? parseFloat(value) : value;
+    setProductFormData(prev => ({ ...prev, [name]: val }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setProductFormData(prev => ({ ...prev, [name]: checked }));
+  };
 
   // Mock Analytics
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
@@ -115,7 +183,7 @@ export default function AdminPage() {
                   <button onClick={() => setActiveTab('orders')} className="text-sm text-blue-600 hover:underline">View all</button>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
+                  <table className="w-full text-sm text-left min-w-[600px]">
                     <thead className="text-xs text-gray-500 uppercase bg-gray-50">
                       <tr>
                         <th className="px-6 py-3">Order ID</th>
@@ -160,12 +228,15 @@ export default function AdminPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 className="font-semibold text-gray-900">Products Catalog</h3>
-                <button className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors">
+                <button 
+                  onClick={handleOpenAddModal}
+                  className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
                   <Plus className="w-4 h-4" /> Add Product
                 </button>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-left min-w-[700px]">
                   <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-6 py-3">Product</th>
@@ -193,7 +264,10 @@ export default function AdminPage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors">
+                            <button 
+                              onClick={() => handleOpenEditModal(product)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button 
@@ -221,7 +295,7 @@ export default function AdminPage() {
                 <h3 className="font-semibold text-gray-900">All Orders</h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-left min-w-[800px]">
                   <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-6 py-3">Order ID</th>
@@ -275,6 +349,133 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Product Modal */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+              <button onClick={() => setIsProductModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleProductSubmit} className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Product Title</label>
+                  <input 
+                    required 
+                    type="text" 
+                    name="title" 
+                    value={productFormData.title} 
+                    onChange={handleInputChange} 
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-black outline-none" 
+                    placeholder="e.g. Premium Cotton Tee"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Category</label>
+                  <select 
+                    name="category" 
+                    value={productFormData.category} 
+                    onChange={handleInputChange} 
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-black outline-none bg-white"
+                  >
+                    <option value="Clothing">Clothing</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Home">Home</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Description</label>
+                <textarea 
+                  required 
+                  name="description" 
+                  value={productFormData.description} 
+                  onChange={handleInputChange} 
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-black outline-none resize-none" 
+                  placeholder="Describe the product..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Price ($)</label>
+                  <input 
+                    required 
+                    type="number" 
+                    step="0.01"
+                    name="price" 
+                    value={productFormData.price} 
+                    onChange={handleInputChange} 
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-black outline-none" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Inventory Count</label>
+                  <input 
+                    required 
+                    type="number" 
+                    name="inventory" 
+                    value={productFormData.inventory} 
+                    onChange={handleInputChange} 
+                    className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-black outline-none" 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Image URL</label>
+                <input 
+                  required 
+                  type="text" 
+                  name="images" 
+                  value={productFormData.images?.[0]} 
+                  onChange={(e) => setProductFormData(prev => ({ ...prev, images: [e.target.value] }))} 
+                  className="w-full px-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-black outline-none" 
+                  placeholder="https://images.unsplash.com/..."
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <input 
+                  type="checkbox" 
+                  id="featured"
+                  name="featured" 
+                  checked={productFormData.featured} 
+                  onChange={handleCheckboxChange}
+                  className="w-4 h-4 text-black focus:ring-black rounded"
+                />
+                <label htmlFor="featured" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Feature this product on the home page
+                </label>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-gray-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsProductModalOpen(false)}
+                  className="flex-1 px-6 py-3 border border-gray-200 rounded-md font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors"
+                >
+                  {editingProduct ? 'Update Product' : 'Create Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

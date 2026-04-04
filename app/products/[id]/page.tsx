@@ -27,6 +27,7 @@ export default function ProductDetailsPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     if (product && product.variants && Object.keys(selectedVariants).length === 0) {
       const defaults: Record<string, string> = {};
@@ -162,7 +163,7 @@ export default function ProductDetailsPage() {
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4 mb-8">
             {/* Quantity */}
-            <div className="flex items-center border border-gray-200 rounded-md h-14 w-full sm:w-32">
+            <div className="flex items-center border border-gray-200 rounded-md h-14 min-h-[56px] w-full sm:w-32">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 className="flex-1 flex items-center justify-center text-gray-500 hover:text-black transition-colors"
@@ -182,14 +183,14 @@ export default function ProductDetailsPage() {
             <button
               onClick={handleAddToCart}
               disabled={product.inventory === 0}
-              className="flex-1 bg-black text-white h-14 rounded-md font-medium hover:bg-gray-900 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 bg-black text-white h-14 min-h-[56px] rounded-md font-medium hover:bg-gray-900 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {product.inventory === 0 ? 'Out of Stock' : 'Add to Cart'}
             </button>
 
             <button
               onClick={() => toggleItem(product.id)}
-              className={`h-14 w-14 flex items-center justify-center border rounded-md transition-colors ${
+              className={`h-14 min-h-[56px] w-14 flex items-center justify-center border rounded-md transition-colors ${
                 isWishlisted ? 'border-red-500 bg-red-50 text-red-500' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
